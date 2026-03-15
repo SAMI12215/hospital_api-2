@@ -1,30 +1,36 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+import sqlite3
 
 app = FastAPI()
 
-patients = []
+# الاتصال بقاعدة البيانات
+conn = sqlite3.connect("hospital.db", check_same_thread=False)
+cursor = conn.cursor()
+
+# إنشاء جدول المرضى إذا لم يكن موجود
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS patients (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    condition TEXT
+)
+""")
+
+conn.commit()
+
 
 class Patient(BaseModel):
     id: int
     name: str
     condition: str
 
+
 @app.get("/")
 def home():
     return {"message": "Hospital System Running"}
 
+
 @app.get("/patients")
 def get_patients():
-    return patients
-
-@app.post("/patients")
-def add_patient(patient: Patient):
-    patients.append(patient)
-    return {"message": "Patient added"}
-
-@app.delete("/patients/{patient_id}")
-def delete_patient(patient_id: int):
-    global patients
-    patients = [p for p in patients if p.id != patient_id]
-    return {"message": "Patient deleted"}
+    cursor.execute("SELECT * FROM patients")
